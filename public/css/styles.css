@@ -1,0 +1,30 @@
+
+body {
+  background-color: #E8ECEF;
+}
+
+.centered {
+    padding-top: 200px;
+    text-align: center;
+}
+
+.secret-text {
+  text-align: center;
+  font-size: 2rem;
+  color: #fff;
+  background-color: #000;
+}
+i{
+  color: rgb(255, 255, 255);
+  padding: 10px;
+  border-radius: 50%;
+}
+.fa-google{
+  background-color: #F47474;
+}
+.fa-facebook{
+  background-color: #7489B6;
+}
+.fa-twitter{
+  background-color: #1DA1F2;
+}
