@@ -2,7 +2,9 @@
 body {
   background-color: #E8ECEF;
 }
-
+*{
+  /* outline: 1px solid red; */
+}
 .centered {
     padding-top: 200px;
     text-align: center;
@@ -27,4 +29,7 @@ i{
 }
 .fa-twitter{
   background-color: #1DA1F2;
+}
+.fa-github{
+  background-color:#000;
 }

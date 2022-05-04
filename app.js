@@ -6,6 +6,8 @@ const passportLocalMongoose = require('passport-local-mongoose');
 const session = require('express-session');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const GitHubStrategy = require('passport-github2').Strategy;
+
 const findOrCreate = require('mongoose-findorcreate')
 require('dotenv').config()
 const app = express();
@@ -34,8 +36,8 @@ const userSchema = new mongoose.Schema({
     username: String,
     password: String,
     googleId: String,
-    picture: String
-
+    githubId: String,
+    picture: String,
 })
 
 userSchema.plugin(passportLocalMongoose);
@@ -45,8 +47,8 @@ const User = new mongoose.model('User', userSchema)
 passport.use(User.createStrategy());
 
 passport.use(new GoogleStrategy({
-        clientID: process.env.CLIENT_ID,
-        clientSecret: process.env.CLIENT_SECRET,
+        clientID: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
         callbackURL: "http://localhost:3001/auth/google/secrets",
         userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo"
     },
@@ -57,6 +59,22 @@ passport.use(new GoogleStrategy({
             picture: profile._json.picture
         }, function (err, user) {
             return cb(err, user);
+        });
+    }
+));
+
+passport.use(new GitHubStrategy({
+        clientID: process.env.GITHUB_CLIENT_ID,
+        clientSecret: process.env.GITHUB_CLIENT_SECRET,
+        callbackURL: "http://localhost:3001/auth/github/secrets"
+    },
+    function (accessToken, refreshToken, profile, done) {
+        User.findOrCreate({
+            githubId: profile.id,
+            username: profile.displayName,
+            picture: profile.photos[0].value
+        }, function (err, user) {
+            return done(err, user);
         });
     }
 ));
@@ -79,8 +97,25 @@ app
 
     })
 
+app.get('/auth/github',
+    passport.authenticate('github', {
+        scope: ['user:email']
+    }),
+    function (req, res) {
+        // The request will be redirected to GitHub for authentication, so this
+        // function will not be called.
+    });
+
+app.get('/auth/github/secrets',
+    passport.authenticate('github', {
+        failureRedirect: '/login'
+    }),
+    function (req, res) {
+        res.redirect('/secrets');
+    });
+
 app
-    .route('/login/google')
+    .route('/auth/google')
     .get(passport.authenticate('google', {
         scope: ['profile']
     }));
@@ -140,30 +175,48 @@ app
     .route('/secrets')
     .get((req, res) => {
         if (req.isAuthenticated()) {
-            User.findOne({
-                username: 'Samuel FN'
-            }, (err, resultname) => {
-                if (err) {
-                    console.log(err)
-                } else {
-                    User.findOne({
-                        username: 'Samuel FN'
-                    }, (err, resultpic) => {
-                        if (err) {
-                            console.log(err)
-                        } else {
-                            res.render('secrets', {
-                                username: resultname.username,
-                                userpicture: '<img src="' + resultpic.picture + '"></img>'
-                            })
-                            
-                        }
-                    })
+            // console.log(req)
+            User.findById(req.user.id, (err, result) => {
+                console.log(result);
+                if (err)
+                    return console.log(err)
+                else {
+                    if (result) {
+                        res.render('secrets', {
+                            username: result.username,
+                            userpicture: result.picture,
+                        })
+                    }
                 }
-
             })
+        } else {
+            res.redirect('/')
         }
     })
+// User.findOne({
+//     username: 'Samuel FN'
+// }, (err, resultname) => {
+//     if (err) {
+//         console.log(err)
+//     } else {
+//         User.findOne({
+//             username: 'Samuel FN'
+//         }, (err, resultpic) => {
+//             if (err) {
+//                 console.log(err)
+//             } else {
+//                 res.render('secrets', {
+//                     username: resultname.username,
+//                     userpicture: '<img src="' + resultpic.picture + '"></img>'
+//                 })
+
+//             }
+//         })
+//     }
+
+//         })
+//     }
+// })
 
 app
     .route('/logout')
@@ -179,6 +232,3 @@ app
 app.listen(process.env.YOUR_PORT || process.env.PORT || port, () => {
     console.log('Listening to server on port ' + port)
 })
-
-
-
